@@ -1,3 +1,5 @@
+//Mitchell Gerber Java Fortran 77 interpreter CS 415
+
 package interpreter;
 
 import java.io.BufferedReader;
@@ -16,6 +18,7 @@ import java.util.StringTokenizer;
 
 public class main {
 	
+	//method to advance to the end of the line if it is finished reading the line
 	public static void endOfLine(StringTokenizer stk)
 	{
 		while (stk.hasMoreTokens())
@@ -31,15 +34,15 @@ public class main {
 
 		//new array list for new variables
 		ArrayList vars = new ArrayList();
+		String temp;
 		
-		// Open the file
+		// Open the file for use
 		FileInputStream fstream = new FileInputStream("C:/g77/bin/FORTRANZ.for");
 		PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("interpreted.java")));
-		
 		BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
 
+		//create string for new line
 		String line;
-		int i = 1;
 		
 		
 		
@@ -74,23 +77,7 @@ public class main {
 					endOfLine(stk);
 				}
 				
-				//write(*,*)
-				else if (nextToken.equals("write(*,*)"))
-				{
-					outputString = "System.out.println(";
-					
-					while (stk.hasMoreTokens())
-					{
-						outputString += " " + stk.nextToken();
-						
-					}
-					
-					
-					outputString += ");";
-					outputString = outputString.replaceAll("'", "\"");
-					System.out.println("'Addition'");
-					
-				}
+				
 				
 				//call subroutines
 				else if (nextToken.equals("call"))
@@ -102,7 +89,7 @@ public class main {
 				//create subroutines
 				else if (nextToken.equals("subroutine"))
 				{
-					outputString = "public static void " + stk.nextToken() + " {";
+					outputString = "public static void " + stk.nextToken() + "() {";
 					
 				}
 				
@@ -110,7 +97,7 @@ public class main {
 				else if (nextToken.equals("integer"))
 				{
 					
-					String temp = stk.nextToken();
+					temp = stk.nextToken();
 					
 					//if integer is followed by ::
 					if (!temp.equals("::"))
@@ -125,27 +112,27 @@ public class main {
 					
 					else
 					{
-						String temp2 = stk.nextToken();
+						temp = stk.nextToken();
 						
 						//if it is an array
-						if (temp2.length() > 1)
+						if (temp.length() > 1)
 						{
-							outputString += "int[][] " + temp2.substring(0, 1) + " = new int";
+							outputString += "int[][] " + temp.substring(0, 1) + " = new int";
 							
-							temp2 = temp2.replace("(", "[");
-							temp2 = temp2.replace(",", "][");
-							temp2 = temp2.replace(")", "]");
+							temp = temp.replace("(", "[");
+							temp = temp.replace(",", "+1][");
+							temp = temp.replace(")", "+1]");
 							
-							outputString += temp2.substring(1) + ";";
-							vars.add(temp2.substring(0, 1));
+							outputString += temp.substring(1) + ";";
+							vars.add(temp.substring(0, 1));
 						}
 						
 						//not an array
 						else
 						{
 							outputString = "int";
-							outputString += " " + temp2 + " " + stk.nextToken() + " " + stk.nextToken() + ";";
-							vars.add(temp2);
+							outputString += " " + temp + " " + stk.nextToken() + " " + stk.nextToken() + ";";
+							vars.add(temp);
 						}
 						
 						
@@ -166,17 +153,36 @@ public class main {
 					
 					while(stk.hasMoreTokens())
 					{
-						String temp3 = stk.nextToken();
+						temp = stk.nextToken();
 						
+						if (temp.equals("rand(8)"))
+						{
+							temp = "Math.random() * 9";
+						}
 						
-						temp3 = temp3.replace("(", "[");
-						temp3 = temp3.replace(",", "][");
-						temp3 = temp3.replace(")", "]");
+						else if(temp.equals("rand(25)"))
+						{
+							temp = "Math.random() * 26";
+						}
 						
-						outputString += temp3 + " ";
+						else if(temp.equals("rand(9)"))
+						{
+							temp = "Math.random() * 9 + 1";
+						}
+						
+						else
+						{
+						temp = temp.replace("(", "[");
+						temp = temp.replace(",", "][");
+						temp = temp.replace(")", "]");
+						}
+						
+						outputString += temp + " ";
 						
 					}
-					
+					outputString = outputString.replace("Math.random() * 9 + 1", "(int) (Math.random() * 9 + 1)");
+					outputString = outputString.replace("5 + Math.random() * 26", "(int) (5 + Math.random() * 26)");
+					outputString = outputString.replace("1 + Math.random() * 9", "(int) (1 + Math.random() * 9)");
 					outputString += ";";
 				}
 				
@@ -207,7 +213,56 @@ public class main {
 					
 				}
 				
+				//write(*,*)
+				else if (nextToken.equals("write(*,*)"))
+				{
+					//prints the initial formatting for the new print out
+					outputString = "System.out.printf(\"%3s %3s %3s %3s %3s %3s %3s %3s %3s %3s\",";
+					
+					//parses through the line
+					//if the token is an array it will replace the bracket with the java format
+					while (stk.hasMoreTokens())
+					{
+						temp = stk.nextToken();
+						outputString += " ";
+						if (vars.contains(temp.substring(0,1)))
+						{
+						temp = temp.replace("(", "[");
+						temp = temp.replace(",", "][");
+						temp = temp.replace(")", "]");
+						}
+						
+						
+						
+						outputString += temp;
+						
+					}
+					
+					outputString = outputString.replaceAll("'", "\"");
+					outputString = outputString.replaceAll("\"\",", "");
+					outputString = outputString.replaceAll("___", "___ ___");
+					
+					//if the fortran program is outputing the text with underlines this will run
+					if (outputString.contains("___"))
+					{
+						outputString = outputString.replace("\"%3s %3s %3s %3s %3s %3s %3s %3s %3s %3s\"", "\"%3s\"");
+						
+					}
+					
+					//if the division method is being interpreted we need to change the java print formatting
+					if (outputString.contains("/"))
+					{
+						outputString = outputString.replace("\"%3s %3s %3s %3s %3s %3s %3s %3s %3s %3s\"", "\"%3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s %3s\"");
+						
+					}
+					
+					outputString += "); System.out.println();";
+					
+					
+					
+				}
 				
+				//if no condition are met, will go to next line
 				else
 				{
 					endOfLine(stk);
@@ -217,12 +272,12 @@ public class main {
 		
 			
 			
-		System.out.println(vars.toString());
+			//finally prints the output to a .java file
 		  out.println(outputString);
 		}
 		
 		out.println("}");
-
+		//closes files
 		out.close();
 		//Close the input stream
 		br.close();
